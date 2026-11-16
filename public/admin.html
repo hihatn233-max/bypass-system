@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <style>
+        body { font-family: Arial; background: #121212; color: #fff; padding: 20px; }
+        .container { max-width: 800px; margin: auto; background: #1e1e1e; padding: 20px; border-radius: 8px; }
+        input { padding: 10px; width: 60%; margin-right: 10px; border-radius: 5px; border: none; margin-bottom: 10px;}
+        button { padding: 10px 20px; background: #00d2ff; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; color: #000; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #333; word-break: break-all; font-size: 14px; }
+        th { color: #888; }
+        .url { color: #4caf50; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Hệ Thống Quản Trị</h1>
+        <div>
+            <input type="password" id="adminPass" placeholder="Nhập mật khẩu Admin">
+            <button onclick="loadLinks()">Đăng nhập</button>
+        </div>
+        <div id="dashboard" style="display:none; margin-top: 30px;">
+            <h3>Tạo Link Mới</h3>
+            <input type="text" id="originalUrl" placeholder="https://link-goc.com">
+            <button onclick="createLink()">Tạo</button>
+            <h3>Danh sách Link</h3>
+            <table>
+                <thead><tr><th>Link Gốc</th><th>Link Rút Gọn</th><th>Lượt Click</th></tr></thead>
+                <tbody id="linkList"></tbody>
+            </table>
+        </div>
+    </div>
+    <script>
+        function getPass() { return document.getElementById('adminPass').value; }
+        async function loadLinks() {
+            const pass = getPass();
+            if(!pass) return alert("Nhập pass!");
+            try {
+                const res = await fetch('/api/admin/list', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: pass })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    document.getElementById('dashboard').style.display = 'block';
+                    renderTable(data);
+                } else { alert(data.error); }
+            } catch (e) { alert('Lỗi mạng!'); }
+        }
+        async function createLink() {
+            const pass = getPass();
+            const url = document.getElementById('originalUrl').value;
+            if(!url) return alert("Nhập URL!");
+            try {
+                const res = await fetch('/api/admin/create', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ originalUrl: url, password: pass })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    alert(`Đã tạo: ${data.shortUrl}`);
+                    document.getElementById('originalUrl').value = '';
+                    loadLinks(); 
+                } else { alert(data.error); }
+            } catch (e) { alert('Lỗi mạng!'); }
+        }
+        function renderTable(links) {
+            const tbody = document.getElementById('linkList');
+            tbody.innerHTML = '';
+            links.forEach(link => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td class="url">${link.originalUrl}</td><td>/${link.shortId}</td><td>${link.clicks}</td>`;
+                tbody.appendChild(tr);
+            });
+        }
+    </script>
+</body>
+</html>
